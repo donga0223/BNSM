@@ -14,7 +14,7 @@ Self-Reported Network Ties`.
     - `BNSM_simulation_missing_cluster_sh.R` creates cluster jobs to fit a BNSM model; each job calls `BNSM_simulation_missing_cluster.R`
     - Run `BNSM_simulation_summary.R` to produce summary plot.
     
- - [application](https://github.com/donga0223/BNSM/tree/main/R_function/application) contains code for fitting the model to real data and conducting data matched simulation studies in the application section
+ - [application](https://github.com/donga0223/BNSM/tree/main/R_function/application) contains code for fitting the model to [real_school_data](https://github.com/donga0223/BNSM/tree/main/R_function/application/real_school_data) and conducting data matched simulation studies in the application section
     - [real_school_data](https://github.com/donga0223/BNSM/tree/main/R_function/application/real_school_data) contains code for fitting the model to real data 
         -`BNSM_application.R` fits a BNSM model to real data
         -`BNSM_application_sh.R` creates cluster jobs to fit a BNSM model; each job calls `BNSM_application.R`
