@@ -425,9 +425,7 @@ obs.netmean <- matrix(NA, ncol = 6, nrow = myrep)
 for(i in 1:myrep){
   obs.netmean[i,] <- netmean(obs.g10[[i]])
 }
-#boxplot(mean.pred.y1)
-#boxplot(rbind(mean.pred.y1, q975.pred.y1, q025.pred.y1))
-#boxplot(theta2.pred.y[[1]])
+
 
 npbox <- cbind(rbind(mean.pred.y1, q975.pred.y1, q025.pred.y1)
                , rbind(mean.pred.y2, q975.pred.y2, q025.pred.y2)
@@ -439,7 +437,6 @@ boxplot(npbox[,c(seq(1,t.n,6),seq(2,t.n,6),seq(3,t.n,6),seq(4,t.n,6),seq(5,t.n,6
 abline(v = (1:m)*mn+0.5, lty = 2)
 axis(side=1, at=(1:m)*mn-mn/2, mgp=c(0,0.5,0), labels = paste0("Net",1:6), cex.axis = 1.5, tick = 0)
 axis(side=1, at = 1:(mn*m), mgp=c(0,1.5,0), labels = rep(paste0("m",1:mn),6), tick = 0, cex.axis = 0.7)
-#for (i in 1:V)  lines(c(mn*(i-1)+0.5, mn*i+0.5), rep(c(0.05, 0.09, 0.01, 0.025, 0.04, 0.13)[i],2), col = 2, lwd = 2)
 
 for (i in 1:V)  lines(c(mn*(i-1)+0.5, mn*i+0.5), rep(apply(obs.netmean,2,mean)[i],2), col = 2, lwd = 2)
 legend("topleft", legend = "Observed mean density", lwd = 3, cex = 1.5, col = 2)
