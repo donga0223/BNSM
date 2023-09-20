@@ -16,8 +16,7 @@ Self-Reported Network Ties`.
     
  - [application](https://github.com/donga0223/BNSM/tree/main/R_function/application) contains code for fitting the model to [real_school_data](https://github.com/donga0223/BNSM/tree/main/R_function/application/real_school_data) and conducting data matched simulation studies in the application section
     - [real_school_data](https://github.com/donga0223/BNSM/tree/main/R_function/application/real_school_data) contains code for fitting the model to real data 
-    
-        *`BNSM_application.R` fits a BNSM model to real data
-        *`BNSM_application_sh.R` creates cluster jobs to fit a BNSM model; each job calls `BNSM_application.R`
-        *`BNSM_application_summary.R` to produce summary plot 
+      - `BNSM_application.R` fits a BNSM model to real data
+      - `BNSM_application_sh.R` creates cluster jobs to fit a BNSM model; each job calls `BNSM_application.R`
+      - `BNSM_application_summary.R` to produce summary plot 
  
