@@ -19,4 +19,8 @@ Self-Reported Network Ties`.
       - `BNSM_application.R` fits a BNSM model to real data
       - `BNSM_application_sh.R` creates cluster jobs to fit a BNSM model; each job calls `BNSM_application.R`
       - `BNSM_application_summary.R` to produce summary plot 
+    - [data_matched_sim](https://github.com/donga0223/BNSM/tree/main/R_function/application/data_matched_sim) contains code for fitting the model to data matched simulation 
+      - `BNSM_data_matched_sim.R` fits a BNSM model to data matched simulation
+      - `BNSM_data_matched_sim_sh.R` creates cluster jobs to fit a BNSM model; each job calls `BNSM_data_matched_sim.R`
+      - `BNSM_data_matched_sim_summary.R` to produce a summary plot, it produces two plots: One for summarizing and comparing three models, and the other for comparing butts model with our proposed model. 
  
