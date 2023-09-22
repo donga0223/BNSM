@@ -6,6 +6,8 @@ Self-Reported Network Ties`.
 [R_function](https://github.com/donga0223/BNSM/tree/main/R_function) contains code for simulation and application chapter 
  - `thetaprior_function_forpaper.R` It contains all the functions to generate data and estimate the model.
  - `BNSM_summary_function.R` This code is needed to generate a summary plot for the application.
+ - `Butts_PPC.R` This code is for conducting a posterior predictive check when using Butts method
+ - `Butts_PPC_plots.R` To perform the posterior predictive check after fitting the real data to the Butts method..
  
  - [simulation](https://github.com/donga0223/BNSM/tree/main/R_function/simulation) contains code for simulation study in the simulation section
     - `BNSM_simulation_cluster.R` fits a BNSM model to simulated data for a single simulation replicate
