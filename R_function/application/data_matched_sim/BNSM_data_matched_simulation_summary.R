@@ -3,7 +3,7 @@ library(sna)
 
 iter <- 50
 schools <- c("ARTS02", "ARTS03", "PREP02", "TECH03")
-school <- "PREP02"
+school <- "TECH03"
 ## load all simulation and store the values that I want to plot 
 load(paste("data_matched_sim/BNSM_fit/BNSM_data_matched_simulation_", school, "_", iter, ".RData", sep = ""))
 all.g <- all.obs.g <- list()
@@ -151,7 +151,7 @@ pdf(paste("S-", school,"_data_matched_simulation.pdf", sep = ""))
 
 par(mar = c(4.5, 5, 3.5, 1.5))
 plot(c(0, 1 + V), c(0,1), type = "n", ylab = "e- Credible Interval",xlab = "node number"
-     , cex.lab = 2, cex.main = 2, cex.axis = 2, main = paste(simname, " Posterior for each node in 1 simulation", sep = ""))
+     , cex.lab = 2, cex.main = 2, cex.axis = 2, main = paste(simname, " Posterior for each node \n in 1 simulation", sep = ""))
 for (i in 1:V) lines(rep(i-0.15, 2), theta1.em.CI[[2]][1:2, i], lwd = 3, col = mycol[2])
 for (i in 1:V) lines(rep(i-0.05, 2), theta2.em.CI[[2]][1:2, i], lwd = 3, col = mycol[3])
 for (i in 1:V) lines(rep(i+0.05, 2), theta3.em.CI[[2]][1:2, i], lwd = 3, col = mycol[4])
@@ -160,7 +160,7 @@ for (i in 1:V)  lines(c(i-0.2, i+0.2), rep(trueem1[i],2), col = mycol[1], lwd = 
 legend("topleft", legend = mylegend, col = mycol, lwd = 3, cex = 2)
 
 plot(c(0, 1 + V), c(0,1), type = "n", ylab = "e+ Credible Interval",xlab = "node number"
-     , cex.lab = 2, cex.main = 2, cex.axis = 2, main = paste(simname, " Posterior for each node in 1 simulation", sep = ""))
+     , cex.lab = 2, cex.main = 2, cex.axis = 2, main = paste(simname, " Posterior for each node \n in 1 simulation", sep = ""))
 for (i in 1:V) lines(rep(i-0.15, 2), theta1.ep.CI[[2]][1:2, i], lwd = 3, col = mycol[2])
 for (i in 1:V) lines(rep(i-0.05, 2), theta2.ep.CI[[2]][1:2, i], lwd = 3, col = mycol[3])
 for (i in 1:V) lines(rep(i+0.05, 2), theta3.ep.CI[[2]][1:2, i], lwd = 3, col = mycol[4])
@@ -168,7 +168,7 @@ for (i in 1:V) lines(rep(i+0.05, 2), theta3.ep.CI[[2]][1:2, i], lwd = 3, col = m
 for (i in 1:V)  lines(c(i-0.2, i+0.2), rep(trueep1[i],2), col = "red", lwd = 2)
 legend("topleft", legend = mylegend, col = mycol, lwd = 3, cex = 2)
 
-plot(xs, emy, type = "l", lwd = 3, col = 2, xlab = "e-", ylab = "Density", main = paste(simname, " Posterior for all observations in 50 reps", sep = ""), cex.main = 2, cex.lab = 2, cex.axis = 2)
+plot(xs, emy, type = "l", lwd = 3, col = 2, xlab = "e-", ylab = "Density", main = paste(simname, " Posterior for all observations \n over 50 simulations", sep = ""), cex.main = 2, cex.lab = 2, cex.axis = 2)
 myrep <- length(theta1.b01)
 
 for(i in 1:iter){
@@ -182,7 +182,7 @@ lines(xs, emy, type = "l", lwd = 3, col = 2)
 legend("topright", legend = mylegend, col = mycol, lwd = 3, cex = 2)
 
 
-plot(xs, epy, type = "l", lwd = 3, col = 2, xlab = "e+", ylab = "Density", main = paste(simname, " Posterior for all observations in 50 reps",sep=""), cex.main = 2, cex.lab = 2, cex.axis = 2)
+plot(xs, epy, type = "l", lwd = 3, col = 2, xlab = "e+", ylab = "Density", main = paste(simname, " Posterior for all observations \n over 50 simulations",sep=""), cex.main = 2, cex.lab = 2, cex.axis = 2)
 for(i in 1:myrep){
   lines(theta1.ep.density[[i]], col = mycol[2], lwd = 2)
   lines(theta2.ep.density[[i]], col = mycol[3], lwd = 2)
@@ -219,7 +219,7 @@ for(i in 1:myrep){
 
 npbox <- cbind(rbind(mean.np1, q975.np1, q025.np1), rbind(mean.np2, q975.np2, q025.np2), rbind(mean.np3, q975.np3, q025.np3))
 
-boxplot(npbox[,c(seq(1,t.n,6),seq(2,t.n,6),seq(3,t.n,6),seq(4,t.n,6),seq(5,t.n,6),seq(6,t.n,6))], main= paste(simname, " Posterior for Theta", sep=""), cex.main = 2, xaxt = "n")
+boxplot(npbox[,c(seq(1,t.n,6),seq(2,t.n,6),seq(3,t.n,6),seq(4,t.n,6),seq(5,t.n,6),seq(6,t.n,6))], col = mycol[2:(mn+1)], main= paste(simname, " Posterior for Theta", sep=""), cex.main = 2, xaxt = "n")
 abline(v = (1:m)*mn+0.5, lty = 2)
 
 axis(side=1, at=(1:m)*mn-mn/2, mgp=c(0,0.5,0), labels = paste0("Net",1:6), cex.axis = 1.5, tick = 0)
@@ -347,7 +347,7 @@ roc.threshold <- function(theta.b01, g, threshold){
 roc1.obsmean <- roc.threshold(theta1.b01, g10, threshold = obs.g10)
 roc1.estmean <- roc.threshold(theta1.b01, g10, threshold = theta1.b01)
 
-plot(theta1.perf[[1]], col = mycol[2], main = paste(simname, " ROC curve in 50 reps", sep = " "), cex.main = 2, cex.lab = 2, cex.axis = 2)
+plot(theta1.perf[[1]], col = mycol[2], main = paste(simname, " ROC curve \n over 50 simulations", sep = " "), cex.main = 2, cex.lab = 2, cex.axis = 2)
 plot(theta2.perf[[1]], col = mycol[3], add = TRUE)
 plot(theta3.perf[[1]], col = mycol[4], add = TRUE)
 #plot(theta4.perf[[1]], col = mycol[5], add = TRUE)
@@ -479,7 +479,7 @@ mycol =  col.list[1:mn]
 par(mar = c(4.5, 5, 3.5, 1.5))
 
 plot(xs, emy, type = "l", lwd = 3, col = 2, xlab = "e-", ylab = "Density", ylim = c(0,8)
-     , main = paste(simname, ", Posterior for all over 50 reps", sep = ""), cex.main = 2, cex.lab = 2, cex.axis = 2)
+     , main = paste(simname, ", Posterior for all \n over 50 simulations", sep = ""), cex.main = 2, cex.lab = 2, cex.axis = 2)
 for(i in 1:myrep){
   lines(theta1.em.density[[i]], col = mycol[2], lwd = 1)
   lines(theta2.em.density[[i]], col = mycol[3], lwd = 1)
@@ -491,7 +491,7 @@ for(i in 1:myrep){
 lines(xs, emy, type = "l", lwd = 3, col = 2)
 legend("topright", legend = mylegend1, col = mycol, lwd = 3, cex = 2)
 
-plot(xs, epy, type = "l", lwd = 3, col = 2, xlab = "e+", ylab = "Density", main = paste(simname, ", Posterior for all over 50 reps", sep = ""), cex.main = 2, cex.lab = 2, cex.axis = 2)
+plot(xs, epy, type = "l", lwd = 3, col = 2, xlab = "e+", ylab = "Density", main = paste(simname, ", Posterior for all \n over 50 simulations", sep = ""), cex.main = 2, cex.lab = 2, cex.axis = 2)
 for(i in 1:myrep){
   lines(theta1.ep.density[[i]], col = mycol[2], lwd = 2)
   lines(theta2.ep.density[[i]], col = mycol[3], lwd = 2)
@@ -538,7 +538,7 @@ npbox <- cbind(rbind(mean.np0, q975.np0, q025.np0), rbind(mean.np1, q975.np1, q0
                , rbind(mean.np2, q975.np2, q025.np2), rbind(mean.np3, q975.np3, q025.np3))
 #, rbind(mean.np4, q975.np4, q025.np4), rbind(mean.np5, q975.np5, q025.np5))
 
-boxplot(npbox[,c(seq(1,t.n,6),seq(2,t.n,6),seq(3,t.n,6),seq(4,t.n,6),seq(5,t.n,6),seq(6,t.n,6))], col = mycol, main = paste(simname, ", Posterior for Theta over 50 reps", sep = ""), cex.main = 1.5, xaxt = "n")
+boxplot(npbox[,c(seq(1,t.n,6),seq(2,t.n,6),seq(3,t.n,6),seq(4,t.n,6),seq(5,t.n,6),seq(6,t.n,6))], col = mycol, main = paste(simname, ", Posterior for Theta \n over 50 simulations", sep = ""), cex.main = 1.5, xaxt = "n")
 abline(v = (1:m)*mn+0.5, lty = 2)
 axis(side=1, at=(1:m)*mn-mn/2, mgp=c(0,0.5,0), labels = paste0("Net",1:6), cex.axis = 1.5, tick = 0)
 axis(side=1, at = 1:(mn*m), mgp=c(0,1.5,0), labels = rep(c("B",paste0("m",c(1,4,5))),6), tick = 0, cex.axis = 0.5)
