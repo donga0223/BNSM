@@ -151,6 +151,10 @@ sampletie_func <- function(ep, em, m, n, d, mode, diag, np, model.checking){
   a <- rgraph(n, m, tprob = tieprob, mode = mode, diag = diag)
   if (!diag) 
     a <- diag.remove(a)
+  if (length(dim(a)) == 2){
+    a <- array(a, dim = c(1, NROW(a), NCOL(a)))
+  }
+  
   if(model.checking == TRUE){
     yprob <- a*(1-em.a)+(1-a)*ep.a
     pred_y <- rgraph(n, m, tprob = yprob, mode = "digraph", diag = diag)
@@ -529,6 +533,529 @@ bnsm.one.theta <- function(dat, emp = c(3,9), epp = c(3,9)
   
   endtime <- Sys.time() - start.time
   #out$nprior <- nprior
+  out$anames <- anames
+  out$onames <- onames
+  out$nactors <- n
+  out$nrelations <- m
+  out$reps <- reps
+  out$draws <- draws
+  out$burntime <- burntime
+  out$tinning <- tinning
+  out$runtime <- endtime
+  out$model <- "node"
+  class(out) <- c("bnsm.node", "bnsm")
+  out
+}
+
+
+
+
+bnsm.hyper <- function(dat, np = netmean(dat), emsd = list(ema = 10, emb = 10, alpha.sd = 0.25, beta.sd = 0.25)
+                       , epsd = list(epa = 3, epb = 9, alpha.sd = 0.25, beta.sd = 0.25)
+                       , diag = FALSE, mode = "graph", model.checking = TRUE
+                       , reps = 3, draws = 1500, tinning = 10, burntime = 500
+                       , quiet = TRUE, anames = NULL, onames = NULL, compute.sqrtrhat = TRUE) {
+  
+  start.time <- Sys.time()
+  dat <- as.sociomatrix.sna(dat, simplify = TRUE)
+  
+  if (is.list(dat)) 
+    stop("All bbnam input graphs must be of the same order.")
+  if (length(dim(dat)) == 2) 
+    dat <- array(dat, dim = c(1, NROW(dat), NCOL(dat)))
+  if (reps == 1) 
+    compute.sqrtrhat <- FALSE
+  m <- dim(dat)[1]
+  n <- dim(dat)[2]
+  d <- dat
+  slen <- burntime + draws*tinning
+  n.draws <- burntime+tinning*(1:draws)
+  
+  out <- list()
+  tieprob <- array(NA, dim=c(m,n,n))
+  if((NROW(np) == m)||(length(np) == 1)) {
+    nprior <- array(np, dim = c(m, n, n))
+  }else if(NROW(np) == n) {
+    nprior <- aperm(array(np, dim = c(n, m, n)), c(2,1,3))
+  }else{
+    stop("nprior is not correct.")
+  }
+  
+  if (is.null(anames)) 
+    anames <- paste("a", 1:n, sep = "")
+  if (is.null(onames)) 
+    onames <- paste("o", 1:m, sep = "")
+  
+  if (!diag) 
+    d <- diag.remove(d)
+  if (!quiet) 
+    cat("Creating temporary variables and drawing initial conditions....\n")
+  
+  res.a <- array(dim = c(reps, draws, m, n, n))
+  res.pred.y <- array(dim = c(reps, draws, m, n, n))
+  res.em <- array(dim = c(reps, draws, n))
+  res.ep <- array(dim = c(reps, draws, n))
+  res.emalpha <- array(dim = c(reps,draws))
+  res.embeta <- array(dim = c(reps,draws))
+  res.epalpha <- array(dim = c(reps,draws))
+  res.epbeta <- array(dim = c(reps,draws))
+  res.alpha.acc.em <- rep(NA, reps)
+  res.alpha.acc.ep <- rep(NA, reps)
+  res.beta.acc.em <- rep(NA, reps)
+  res.beta.acc.ep <- rep(NA, reps)
+  res.total.alpha.em <- rep(NA, reps)
+  alpha.acc.rate.em <- rep(NA, reps)
+  alpha.acc.rate.ep <- rep(NA, reps)
+  beta.acc.rate.em <- rep(NA, reps)
+  beta.acc.rate.ep <- rep(NA, reps)
+  
+  for(j in 1:reps){
+    #### initial values setting #####
+    #alpha.acc.em = 0; beta.acc.em = 0; total.alpha.em = 0; total.beta.em = 0
+    #alpha.acc.ep = 0; beta.acc.ep = 0; total.alpha.ep = 0; total.beta.ep = 0
+    
+    emalpha <- emsd$ema
+    embeta <- emsd$emb
+    epalpha <- epsd$epa
+    epbeta <- epsd$epb
+    
+    em <- rbeta(n, emalpha, embeta)
+    ep <- rbeta(n, epalpha, epbeta)
+    
+    ### updated values setting ######
+    for(i in 2:slen){
+      if(model.checking == TRUE){
+        sample.a <- sampletie_func(ep = ep, em = em, m = m, n = n, d = d, mode = mode, diag = diag, np = np, model.checking = model.checking)
+        new.a <- sample.a$a
+        pred.y <- sample.a$pred_y
+      }else{
+        new.a <- sampletie_func(ep = ep, em = em, m = m, n = n, d = d, mode = mode, diag = diag, np = np, model.checking = model.checking)
+      }
+      
+      cem <- matrix(nrow = n, ncol = 2)
+      cep <- matrix(nrow = n, ncol = 2)
+      
+      cem[, 1] <- rowSums(colSums((1 - d) * new.a,  na.rm = TRUE))
+      cem[, 2] <- rowSums(colSums(d * new.a,  na.rm = TRUE))
+      cep[, 1] <- rowSums(colSums(d * (1-new.a),  na.rm = TRUE))
+      cep[, 2] <- rowSums(colSums((1 - d) * (1-new.a),  na.rm = TRUE))
+      
+      new.emalpha <- draw.alpha(emalpha, embeta, theta = em, prop.sd = emsd$alpha.sd, type = "em")
+      new.embeta <- draw.beta(new.emalpha, embeta, theta = em, prop.sd = emsd$beta.sd, type = "em")
+      
+      new.epalpha <- draw.alpha(epalpha, epbeta, theta = ep, prop.sd = epsd$alpha.sd, type = "ep")
+      new.epbeta <- draw.beta(new.epalpha, epbeta, theta = ep, prop.sd = epsd$beta.sd, type = "ep")
+      
+      new.em <- rbeta(n, new.emalpha + cem[, 1], new.embeta + cem[, 2])
+      new.ep <- rbeta(n, new.epalpha + cep[, 1], new.epbeta + cep[, 2])
+      
+      #### storing values after burnning and every tinning
+      if(i %in% n.draws){
+        k <- (i-burntime)/tinning
+        res.a[j,k,,,] <- new.a
+        res.pred.y[j,k,,,] <- pred.y
+        res.emalpha[j,k] <- new.emalpha
+        res.embeta[j,k] <- new.embeta
+        res.epalpha[j,k] <- new.epalpha
+        res.epbeta[j,k] <- new.epbeta
+        
+        res.em[j,k,] <- new.em
+        res.ep[j,k,] <- new.ep
+      }
+      
+      rm(emalpha, embeta, epalpha, epbeta, em, ep, new.a)
+      emalpha <- new.emalpha
+      embeta <- new.embeta
+      epalpha <- new.epalpha
+      epbeta <- new.epbeta
+      
+      em <- new.em
+      ep <- new.ep
+      
+      rm(new.emalpha, new.embeta, new.epalpha, new.epbeta, new.em, new.ep)
+    }
+    print(alpha.acc.em)
+    print(total.alpha.em)
+    print(alpha.acc.em/total.alpha.em)
+    res.alpha.acc.em[j] <- alpha.acc.em
+    res.alpha.acc.ep[j] <- alpha.acc.ep
+    res.beta.acc.em[j] <- beta.acc.em
+    res.beta.acc.ep[j] <- beta.acc.ep
+    res.total.alpha.em[j] <- total.alpha.em
+  }
+  
+  alpha.acc.rate.em[1] <- res.alpha.acc.em[1]/total.alpha.em[1]
+  alpha.acc.rate.ep[1] <- res.alpha.acc.ep[1]/total.alpha.em[1]
+  beta.acc.rate.em[1] <- res.beta.acc.em[1]/total.alpha.em[1]
+  beta.acc.rate.ep[1] <- res.beta.acc.ep[1]/total.alpha.em[1]
+  for(j in 2:reps){
+    alpha.acc.rate.em[j] <- (res.alpha.acc.em[j]-res.alpha.acc.em[(j-1)])/(total.alpha.em[j]-total.alpha.em[(j-1)])
+    alpha.acc.rate.ep[j] <- (res.alpha.acc.ep[j]-res.alpha.acc.ep[j-1])/(total.alpha.em[j]-total.alpha.em[j-1])
+    beta.acc.rate.em[j] <- (res.beta.acc.em[j]-res.beta.acc.em[j-1])/(total.alpha.em[j]-total.alpha.em[j-1])
+    beta.acc.rate.ep[j] <- (res.beta.acc.ep[j]-res.beta.acc.ep[j-1])/(total.alpha.em[j]-total.alpha.em[j-1])
+  }
+  out$net <- res.a 
+  out$pred.y <- res.pred.y
+  out$em <- res.em[1, , ]
+  out$ep <- res.ep[1, , ]
+  out$emalpha <- res.emalpha[1, ]
+  out$embeta <- res.embeta[1, ]
+  out$epalpha <- res.epalpha[1, ]
+  out$epbeta  <- res.epbeta[1, ]
+  
+  if (reps >= 2) 
+    for (i in 2:reps) {
+      out$em <- rbind(out$em, res.em[i, , ])
+      out$ep <- rbind(out$ep, res.ep[i, , ])
+      out$emalpha <- c(out$emalpha, res.emalpha[i, ])
+      out$epalpha <- c(out$epalpha, res.epalpha[i, ])
+      out$embeta <- c(out$embeta, res.embeta[i, ])
+      out$epbeta <- c(out$epbeta, res.epbeta[i, ])
+    }
+  
+  endtime <- Sys.time() - start.time
+  if (!quiet) 
+    cat("\tAggregated error parameters\n")
+  out$nprior <- nprior
+  out$anames <- anames
+  out$onames <- onames
+  out$nactors <- n
+  out$nrelations <- m
+  out$reps <- reps
+  out$draws <- draws
+  out$burntime <- burntime
+  out$tinning <- tinning
+  out$alpha.acc.em <- res.alpha.acc.em
+  out$alpha.acc.ep <- res.alpha.acc.ep
+  out$beta.acc.em <- res.beta.acc.em
+  out$beta.acc.ep <- res.beta.acc.ep
+  out$total.alpha.em <- res.total.alpha.em
+  out$alpha.acc.rate.em <- alpha.acc.rate.em
+  out$alpha.acc.rate.ep <- alpha.acc.rate.ep
+  out$beta.acc.rate.em <- beta.acc.rate.em
+  out$beta.acc.rate.ep <- beta.acc.rate.ep
+  out$runtime <- endtime
+  out$model <- "node"
+  class(out) <- c("bnsm.node", "bnsm")
+  out
+}
+
+
+
+bnsm.hyper.theta <- function(dat, emsd = list(ema = 10, emb = 10, alpha.sd = 0.25, beta.sd = 0.25)
+                             , epsd = list(epa = 3, epb = 9, alpha.sd = 0.25, beta.sd = 0.25)
+                             , thetaalpha = 1, thetabeta = 9, model.checking = TRUE
+                             , diag = FALSE, mode = "graph"
+                             , reps = 3, draws = 1500, tinning = 10, burntime = 500
+                             , quiet = TRUE, anames = NULL, onames = NULL, compute.sqrtrhat = TRUE) {
+  
+  start.time <- Sys.time()
+  dat <- as.sociomatrix.sna(dat, simplify = TRUE)
+  
+  if (is.list(dat)) 
+    stop("All bbnam input graphs must be of the same order.")
+  if (length(dim(dat)) == 2) 
+    dat <- array(dat, dim = c(1, NROW(dat), NCOL(dat)))
+  if (reps == 1) 
+    compute.sqrtrhat <- FALSE
+  m <- dim(dat)[1]
+  n <- dim(dat)[2]
+  d <- dat
+  slen <- burntime + draws*tinning
+  n.draws <- burntime+tinning*(1:draws)
+  
+  out <- list()
+  tieprob <- array(NA, dim=c(m,n,n))
+  
+  if (is.null(anames)) 
+    anames <- paste("a", 1:n, sep = "")
+  if (is.null(onames)) 
+    onames <- paste("o", 1:m, sep = "")
+  
+  if (!diag) 
+    d <- diag.remove(d)
+  if (!quiet) 
+    cat("Creating temporary variables and drawing initial conditions....\n")
+  
+  
+  
+  res.a <- array(dim = c(reps, draws, m, n, n))
+  res.pred.y <- array(dim = c(reps, draws, m, n, n))
+  res.em <- array(dim = c(reps, draws, n))
+  res.ep <- array(dim = c(reps, draws, n))
+  res.np <- array(dim = c(reps, draws, m))
+  #res.np <- array(dim = c(reps, draws, n))
+  res.emalpha <- array(dim = c(reps,draws))
+  res.embeta <- array(dim = c(reps,draws))
+  res.epalpha <- array(dim = c(reps,draws))
+  res.epbeta <- array(dim = c(reps,draws))
+  res.alpha.acc.em <- rep(NA, reps)
+  res.alpha.acc.ep <- rep(NA, reps)
+  res.beta.acc.em <- rep(NA, reps)
+  res.beta.acc.ep <- rep(NA, reps)
+  res.total.alpha.em <- rep(NA, reps)
+  alpha.acc.rate.em <- rep(NA, reps)
+  alpha.acc.rate.ep <- rep(NA, reps)
+  beta.acc.rate.em <- rep(NA, reps)
+  beta.acc.rate.ep <- rep(NA, reps)
+  
+  for(j in 1:reps){
+    #### initial values setting #####
+    #alpha.acc.em = 0; beta.acc.em = 0; total.alpha.em = 0; total.beta.em = 0
+    #alpha.acc.ep = 0; beta.acc.ep = 0; total.alpha.ep = 0; total.beta.ep = 0
+    
+    #new.a <- sampletie_func(ep = ep, em = em, m = m, n = n, d = d, mode = mode, diag = diag, np = np)
+    
+    emalpha <- emsd$ema
+    embeta <- emsd$emb
+    epalpha <- epsd$epa
+    epbeta <- epsd$epb
+    
+    em <- rbeta(n, emalpha, embeta)
+    ep <- rbeta(n, epalpha, epbeta)
+    
+    np <- rbeta(m, thetaalpha, thetabeta)
+    #np <- rbeta(n, thetaalpha, thetabeta)
+    
+    ### updated values setting ######
+    for(i in 2:slen){
+      if(model.checking == TRUE){
+        sample.a <- sampletie_func(ep = ep, em = em, m = m, n = n, d = d, mode = mode, diag = diag, np = np, model.checking = model.checking)
+        new.a <- sample.a$a
+        pred.y <- sample.a$pred_y
+      }else{
+        new.a <- sampletie_func(ep = ep, em = em, m = m, n = n, d = d, mode = mode, diag = diag, np = np)
+      }
+      
+      cem <- matrix(nrow = n, ncol = 2)
+      cep <- matrix(nrow = n, ncol = 2)
+      
+      cem[, 1] <- rowSums(colSums((1 - d) * new.a,  na.rm = TRUE))
+      cem[, 2] <- rowSums(colSums(d * new.a,  na.rm = TRUE))
+      cep[, 1] <- rowSums(colSums(d * (1-new.a),  na.rm = TRUE))
+      cep[, 2] <- rowSums(colSums((1 - d) * (1-new.a),  na.rm = TRUE))
+      
+      new.emalpha <- draw.alpha(emalpha, embeta, theta = em, prop.sd = emsd$alpha.sd, type = "em")
+      new.embeta <- draw.beta(new.emalpha, embeta, theta = em, prop.sd = emsd$beta.sd, type = "em")
+      
+      new.epalpha <- draw.alpha(epalpha, epbeta, theta = ep, prop.sd = epsd$alpha.sd, type = "ep")
+      new.epbeta <- draw.beta(new.epalpha, epbeta, theta = ep, prop.sd = epsd$beta.sd, type = "ep")
+      
+      new.em <- rbeta(n, new.emalpha + cem[, 1], new.embeta + cem[, 2])
+      new.ep <- rbeta(n, new.epalpha + cep[, 1], new.epbeta + cep[, 2])
+      
+      new.np <- rbeta(m, rowSums(new.a, na.rm = TRUE)+thetaalpha, rowSums(1-new.a, na.rm = TRUE)+thetabeta)
+      #new.np <- rbeta(n, rowSums(colSums(new.a,  na.rm = TRUE))+thetaalpha, rowSums(colSums(1-new.a,  na.rm = TRUE))+thetabeta)
+      
+      #### storing values after burnning and every tinning
+      if(i %in% n.draws){
+        k <- (i-burntime)/tinning
+        res.a[j,k,,,] <- new.a
+        res.pred.y[j,k,,,] <- pred.y
+        res.emalpha[j,k] <- new.emalpha
+        res.embeta[j,k] <- new.embeta
+        res.epalpha[j,k] <- new.epalpha
+        res.epbeta[j,k] <- new.epbeta
+        
+        res.em[j,k,] <- new.em
+        res.ep[j,k,] <- new.ep
+        
+        res.np[j,k,] <- new.np
+      }
+      
+      rm(emalpha, embeta, epalpha, epbeta, em, ep, new.a, pred.y)
+      emalpha <- new.emalpha
+      embeta <- new.embeta
+      epalpha <- new.epalpha
+      epbeta <- new.epbeta
+      
+      em <- new.em
+      ep <- new.ep
+      np <- new.np
+      rm(new.emalpha, new.embeta, new.epalpha, new.epbeta, new.em, new.ep, new.np)
+    }
+    print(alpha.acc.em)
+    print(total.alpha.em)
+    print(alpha.acc.em/total.alpha.em)
+    res.alpha.acc.em[j] <- alpha.acc.em
+    res.alpha.acc.ep[j] <- alpha.acc.ep
+    res.beta.acc.em[j] <- beta.acc.em
+    res.beta.acc.ep[j] <- beta.acc.ep
+    res.total.alpha.em[j] <- total.alpha.em
+  }
+  
+  alpha.acc.rate.em[1] <- res.alpha.acc.em[1]/total.alpha.em[1]
+  alpha.acc.rate.ep[1] <- res.alpha.acc.ep[1]/total.alpha.em[1]
+  beta.acc.rate.em[1] <- res.beta.acc.em[1]/total.alpha.em[1]
+  beta.acc.rate.ep[1] <- res.beta.acc.ep[1]/total.alpha.em[1]
+  for(j in 2:reps){
+    alpha.acc.rate.em[j] <- (res.alpha.acc.em[j]-res.alpha.acc.em[(j-1)])/(total.alpha.em[j]-total.alpha.em[(j-1)])
+    alpha.acc.rate.ep[j] <- (res.alpha.acc.ep[j]-res.alpha.acc.ep[j-1])/(total.alpha.em[j]-total.alpha.em[j-1])
+    beta.acc.rate.em[j] <- (res.beta.acc.em[j]-res.beta.acc.em[j-1])/(total.alpha.em[j]-total.alpha.em[j-1])
+    beta.acc.rate.ep[j] <- (res.beta.acc.ep[j]-res.beta.acc.ep[j-1])/(total.alpha.em[j]-total.alpha.em[j-1])
+  }
+  out$net <- res.a 
+  out$pred.y <- res.pred.y
+  out$em <- res.em[1, , ]
+  out$ep <- res.ep[1, , ]
+  out$np  <- res.np[1, ,]
+  out$emalpha <- res.emalpha[1, ]
+  out$embeta <- res.embeta[1, ]
+  out$epalpha <- res.epalpha[1, ]
+  out$epbeta  <- res.epbeta[1, ]
+  
+  
+  if (reps >= 2) 
+    for (i in 2:reps) {
+      out$em <- rbind(out$em, res.em[i, , ])
+      out$ep <- rbind(out$ep, res.ep[i, , ])
+      out$np <- rbind(out$np, res.np[i, , ])
+      out$emalpha <- c(out$emalpha, res.emalpha[i, ])
+      out$epalpha <- c(out$epalpha, res.epalpha[i, ])
+      out$embeta <- c(out$embeta, res.embeta[i, ])
+      out$epbeta <- c(out$epbeta, res.epbeta[i, ])
+    }
+  
+  endtime <- Sys.time() - start.time
+  if (!quiet) 
+    cat("\tAggregated error parameters\n")
+  out$anames <- anames
+  out$onames <- onames
+  out$nactors <- n
+  out$nrelations <- m
+  out$reps <- reps
+  out$draws <- draws
+  out$burntime <- burntime
+  out$tinning <- tinning
+  out$alpha.acc.em <- res.alpha.acc.em
+  out$alpha.acc.ep <- res.alpha.acc.ep
+  out$beta.acc.em <- res.beta.acc.em
+  out$beta.acc.ep <- res.beta.acc.ep
+  out$total.alpha.em <- res.total.alpha.em
+  out$alpha.acc.rate.em <- alpha.acc.rate.em
+  out$alpha.acc.rate.ep <- alpha.acc.rate.ep
+  out$beta.acc.rate.em <- beta.acc.rate.em
+  out$beta.acc.rate.ep <- beta.acc.rate.ep
+  out$runtime <- endtime
+  out$model <- "node"
+  class(out) <- c("bnsm.node", "bnsm")
+  out
+}
+
+
+
+bnsm.one <- function(dat, np = netmean(dat), emp = c(3,9), epp = c(3,9)
+                     , diag = FALSE, mode = "graph", model.checking = FALSE
+                     , reps = 3, draws = 1500, tinning = 10, burntime = 500
+                     , quiet = TRUE, anames = NULL, onames = NULL, compute.sqrtrhat = TRUE){
+  start.time <- Sys.time()
+  dat <- as.sociomatrix.sna(dat, simplify = TRUE)
+  if (is.list(dat)) 
+    stop("All bbnam input graphs must be of the same order.")
+  if (length(dim(dat)) == 2) 
+    dat <- array(dat, dim = c(1, NROW(dat), NCOL(dat)))
+  if (reps == 1) 
+    compute.sqrtrhat <- FALSE
+  m <- dim(dat)[1]
+  n <- dim(dat)[2]
+  d <- dat
+  slen <- burntime + draws*tinning
+  n.draws <- burntime+tinning*(1:draws)
+  
+  
+  out <- list()
+  tieprob <- array(NA, dim=c(m,n,n))
+  if((NROW(np) == m)||(length(np) == 1)) {
+    nprior <- array(np, dim = c(m, n, n))
+  }else if(NROW(np) == n) {
+    nprior <- aperm(array(np, dim = c(n, m, n)), c(2,1,3))
+  }else{
+    stop("nprior is not correct.")
+  }
+  
+  if ((!is.matrix(emp)) || (NROW(emp) != n) || (NCOL(emp) != 2)) {
+    if (length(emp) == 2) 
+      emprior <- sapply(emp, rep, n)
+    else emprior <- matrix(emp, n, 2)
+  }
+  if ((!is.matrix(epp)) || (NROW(epp) != n) || (NCOL(epp) != 2)) {
+    if (length(epp) == 2) 
+      epprior <- sapply(epp, rep, n)
+    else epprior <- matrix(epp, n, 2)
+  }
+  if (is.null(anames)) 
+    anames <- paste("a", 1:n, sep = "")
+  if (is.null(onames)) 
+    onames <- paste("o", 1:m, sep = "")
+  
+  if (!diag) 
+    d <- diag.remove(d)
+  if (!quiet) 
+    cat("Creating temporary variables and drawing initial conditions....\n")
+  
+  res.a <- array(dim = c(reps, draws, m, n, n))
+  res.pred.y <- array(dim = c(reps, draws, m, n, n))
+  res.em <- array(dim = c(reps, draws, n))
+  res.ep <- array(dim = c(reps, draws, n))
+  emalpha <- emp[1]
+  embeta <- emp[2]
+  epalpha <- epp[1]
+  epbeta <- epp[2]
+  
+  for(j in 1:reps){
+    em <- rbeta(n, emalpha, embeta)
+    ep <- rbeta(n, epalpha, epbeta)
+
+  ### updated values setting ######
+    for (i in 2:slen){
+      if(model.checking == TRUE){
+        sample.a <- sampletie_func(ep = ep, em = em, m = m, n = n, d = d, mode = mode, diag = diag, np = np, model.checking = model.checking)
+        new.a <- sample.a$a
+        pred.y <- sample.a$pred_y
+      }else{
+        new.a <- sampletie_func(ep = ep, em = em, m = m, n = n, d = d, mode = mode, diag = diag, np = np, model.checking = model.checking)
+      }
+      
+      cem <- matrix(nrow = n, ncol = 2)
+      cep <- matrix(nrow = n, ncol = 2)
+      
+      cem[, 1] <- rowSums(colSums((1 - d) * new.a,  na.rm = TRUE))
+      cem[, 2] <- rowSums(colSums(d * new.a,  na.rm = TRUE))
+      cep[, 1] <- rowSums(colSums(d * (1-new.a),  na.rm = TRUE))
+      cep[, 2] <- rowSums(colSums((1 - d) * (1-new.a),  na.rm = TRUE))
+      
+      new.em <- rbeta(n, emalpha + cem[, 1], embeta + cem[, 2])
+      new.ep <- rbeta(n, epalpha + cep[, 1], epbeta + cep[, 2])
+      
+      #### storing values after burnning and every tinning
+      if(i %in% n.draws){
+        k <- (i-burntime)/tinning
+        res.a[j,k,,,] <- new.a
+        res.pred.y[j,k,,,] <- pred.y
+        res.em[j,k,] <- new.em
+        res.ep[j,k,] <- new.ep
+      }
+      rm(em, ep, new.a)
+      em <- new.em
+      ep <- new.ep
+      
+      rm(new.em, new.ep)
+    }
+  }
+  
+  out$net <- res.a 
+  out$pred.y <- res.pred.y
+  out$em <- res.em[1, , ]
+  out$ep <- res.ep[1, , ]
+  
+  if (reps >= 2) 
+    for (i in 2:reps) {
+      out$em <- rbind(out$em, res.em[i, , ])
+      out$ep <- rbind(out$ep, res.ep[i, , ])
+    }
+  
+  endtime <- Sys.time() - start.time
+  out$nprior <- nprior
   out$anames <- anames
   out$onames <- onames
   out$nactors <- n
