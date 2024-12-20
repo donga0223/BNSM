@@ -20,8 +20,9 @@ a1.theta.list <- c(3,1,3,1,3,1,3,1,1)
 b1.theta.list <- c(5,9,5,9,5,9,5,9,1)
 b2.theta.list <- c(5,5,5,5,5,5,5,5,30)
 
-
-for(k in 1:length(a1.em.list)){
+load(paste("application/BNSM_application_", school, ".RData", sep=""))
+#for(k in 1:length(a1.em.list)){
+for(k in c(8,9)){
   
   a1.em = a1.em.list[k]; b1.em = b1.em.list[k]; a2.em = 1; b2.em = b2.em.list[k]
   #a1.ep = 1; b1.ep = 1; a2.ep = 1; b2.ep = 30 ### uniform prior

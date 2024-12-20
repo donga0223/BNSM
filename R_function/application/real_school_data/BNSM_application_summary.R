@@ -1,19 +1,20 @@
 rm(list=ls())
-source("R_function/BNSM_summary_function.R")
+source("BNSM_summary_function.R")
 library(sna)
 library(RColorBrewer)
+library(dplyr)
 
 schools <- c("ARTS02", "ARTS03", "PREP02", "TECH03")
 for(school in schools){
-  load(paste("RDatas/application/BNSM_application_", school, ".RData", sep=""))
+  load(paste("application/BNSM_application_", school, ".RData", sep=""))
   
-  pdfname <- paste("figures/BNSM_application_", school, ".pdf", sep="")
+  pdfname <- paste("BNSM_application_", school, ".pdf", sep="")
   
   #mylegend1 = c("m1", "m2", "m3", "m4", "m5", "m6", "m7", "m8", "m9")
-  mylegend1 = c("m1", "m2", "m3", "m4", "m9")
+  mylegend1 = c("M1", "M2", "M3", "M4", "M5")
   
   mn <- length(mylegend1)
-  mycol =  brewer.pal(mn, "Set1")
+  mycol =  brewer.pal(mn, "Set2")
   
   V <- dim(get(school))[2]
   m <- dim(get(school))[1]
@@ -50,6 +51,11 @@ for(school in schools){
   
   ################################################################################
   ymax <- max(c(m1.res[[1]]$y, m2.res[[1]]$y, m3.res[[1]]$y, m4.res[[1]]$y, m9.res[[1]]$y) )
+  if(school %in% c("ARTS02", "ARTS03")){
+    legendlocation = "topright"
+  }else{
+    legendlocation = "topleft"
+  }
   plot(m1.res[[1]], col = mycol[1], lwd = 3, xlab = "e-"
        , cex.axis = 2, cex.main = 2, cex.lab = 2, main = paste(school, ", Posterior for all"), ylim = c(0,ymax))
   lines(m2.res[[1]], col = mycol[2], lwd = 3, lty = 2)
@@ -60,7 +66,7 @@ for(school in schools){
   #lines(m7.res[[1]], col = mycol[7], lwd = 3)
   #lines(m8.res[[1]], col = mycol[8], lwd = 1)
   lines(m9.res[[1]], col = mycol[5], lwd = 3)
-  legend("topright", legend = mylegend1, col = mycol, lwd = 3, lty = c(1,2,1,2,1), cex = 2)
+  legend(legendlocation, legend = mylegend1, col = mycol, lwd = 3, lty = c(1,2,1,2,1), cex = 2)
   
   
   ymax <- max(c(m1.res[[2]]$y, m2.res[[2]]$y, m3.res[[2]]$y, m4.res[[2]]$y, m9.res[[2]]$y) )
@@ -88,14 +94,21 @@ for(school in schools){
   
   
   
-  boxplot(netnp, col = mycol, main = paste(school, ", Posterior for Theta", sep=""), cex.main = 2, xaxt = "n")
+  boxplot(netnp, col = mycol, main = paste(school, ", Posterior mean for Theta", sep=""), 
+    cex.main = 2, cex.axis = 2, cex.lab = 2, xaxt = "n", ylab = 'Network Density',
+    ylim = c(min(netnp)-0.02, max(netnp)+0.02))
   abline(v = (1:m)*mn+0.5, lty = 2)
-  axis(side=1, at=(1:m)*mn-mn/2, mgp=c(0,0.5,0), labels = paste0("Net",1:6), cex.axis = 1.5, tick = 0)
+  axis(side=1, at=(1:m)*mn-mn/2, mgp=c(0,0.5,0), labels = c("f2f", "online", "eatout", "pa", "screen", "lunch"), cex.axis = 1.3, tick = 0)
   
   for (i in 1:V)  lines(c(mn*(i-1)+0.5, mn*i+0.5), rep(netmean(get(school))[i],2), col = 2, lwd = 2)
-  legend("bottomright", legend = "observed density", lwd = 3, cex = 1.5, col = 2)
-  legend("topleft", legend = mylegend1, col = mycol, pch = 19, cex = 1.5, horiz = TRUE)
+  legend("bottomright", bg = 'white', legend = "observed density", lwd = 3, cex = 1.5, col = 2)
+  legend("topleft", bg = 'white', legend = mylegend1, col = mycol, pch = 19, cex = 1.5, horiz = TRUE)
   
+
+  ### boxplot for the theta with only mean values
+
+
+
   plot.sociomatrix(get(school)[1,,], drawlab = FALSE, diaglab = FALSE, drawlines = FALSE
                    , main = paste(school, " Observed Network (", round(netmean(get(school))[1],4), ")", sep = ""), cex.main = 2)
   
@@ -137,19 +150,17 @@ for(school in schools){
   }
   
   
-  boxplot(netnp, col = mycol, main = paste(school, " Posterior Predictive check",sep = ""), cex.main = 2, xaxt = "n")
+  boxplot(netnp, col = mycol, main = paste(school, " Posterior Predictive check",sep = ""), 
+    cex.main = 2, cex.lab = 2, xaxt = "n", cex.axis = 2, ylab = "Network Density",
+    ylim = c(min(netnp)-0.02, max(netnp)+0.015))
   abline(v = (1:m)*mn+0.5, lty = 2)
-  axis(side=1, at=(1:m)*mn-mn/2, mgp=c(0,0.5,0), labels = paste0("Net",1:6), cex.axis = 1.5, tick = 0)
+  axis(side=1, at=(1:m)*mn-mn/2, mgp=c(0,0.5,0), labels = c("f2f", "online", "eatout", "pa", "screen", "lunch"), cex.axis = 1.3, tick = 0)
   
   for (i in 1:V)  lines(c(mn*(i-1)+0.5, mn*i+0.5), rep(netmean(get(school))[i],2), col = 2, lwd = 2)
-  legend("bottomright", legend = "observed density", lwd = 3, cex = 1.5, col = 2)
-  legend("topleft", legend = mylegend1, col = mycol, pch = 19, cex = 1.5, horiz = TRUE)
+  legend("bottomright", bg = 'white', legend = "observed density", lwd = 3, cex = 1.5, col = 2)
+  legend("topleft", bg = 'white', legend = mylegend1, col = mycol, pch = 19, cex = 1.5, horiz = TRUE)
   
   
   dev.off()
-  
-  
-  
-  
 }
 
