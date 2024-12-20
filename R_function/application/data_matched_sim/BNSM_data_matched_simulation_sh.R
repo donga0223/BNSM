@@ -15,7 +15,7 @@ for(i in 1:myrep){
                           "#SBATCH --ntasks=1 # Number of tasks \n",
                           "#SBATCH -c 1 # Number of Cores per Task\n",
                           "#SBATCH --nodes=1 # Requested number of nodes\n",
-                          "#SBATCH --mem=16000 # Requested Memory; this is 16 GB\n",
+                          "#SBATCH --mem=64000 # Requested Memory; this is 64 GB\n",
                           "#SBATCH --output=", paste("data_matched_sim/BNSM_fit_logs/", filename, ".out", sep = ""), "## add T,L i
    # File for output \n",
                           "#SBATCH --error=", paste("data_matched_sim/BNSM_fit_logs/", filename, ".err", sep = ""), "## add T,L i

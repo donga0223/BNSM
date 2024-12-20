@@ -4,6 +4,7 @@ myrep <- args[1]
 k <- as.numeric(myrep)
 school <- args[2]
 print(school)
+print(k)
 
 source("thetaprior_function_forpaper.R")
 
@@ -71,34 +72,115 @@ a1.theta.list <- c(3,1,1)
 b1.theta.list <- c(5,9,1)
 b2.theta.list <- c(5,5,30)
 
-theta1.em.density <- theta2.em.density <- theta3.em.density <- theta4.em.density <- theta5.em.density <- one_theta.em.density <- list()
-theta1.ep.density <- theta2.ep.density <- theta3.ep.density <- theta4.ep.density <- theta5.ep.density <- one_theta.ep.density <- list()
-theta1.em.CI <- theta2.em.CI <- theta3.em.CI <- theta4.em.CI <- theta5.em.CI <- one_theta.em.CI <- list()
-theta1.ep.CI <- theta2.ep.CI <- theta3.ep.CI <- theta4.ep.CI <- theta5.ep.CI <- one_theta.ep.CI <- list()
-theta1.b01 <- theta2.b01 <- theta3.b01 <- theta4.b01 <- theta5.b01 <- one_theta.b01 <- list()
-theta1.pred.y <- theta2.pred.y <- theta3.pred.y <- theta4.pred.y <- theta5.pred.y <- one_theta.pred.y <- list()
-theta1.np <- theta2.np <- theta3.np <- theta4.np <- theta5.np <- one_theta.np <- list()
+theta1.em.density <- theta2.em.density <- theta3.em.density <- theta4.em.density <- theta5.em.density <- list()
+theta1.ep.density <- theta2.ep.density <- theta3.ep.density <- theta4.ep.density <- theta5.ep.density <- list()
+theta1.em.CI <- theta2.em.CI <- theta3.em.CI <- theta4.em.CI <- theta5.em.CI <- list()
+theta1.ep.CI <- theta2.ep.CI <- theta3.ep.CI <- theta4.ep.CI <- theta5.ep.CI <- list()
+theta1.b01 <- theta2.b01 <- theta3.b01 <- theta4.b01 <- theta5.b01 <- list()
+theta1.pred.y <- theta2.pred.y <- theta3.pred.y <- theta4.pred.y <- theta5.pred.y <- list()
+theta1.np <- theta2.np <- theta3.np <- theta4.np <- theta5.np <- list()
 
 
+one_theta_all.em.density <- one_theta1.em.density <- one_theta2.em.density <- one_theta3.em.density <- one_theta4.em.density <- one_theta5.em.density <- one_theta6.em.density <- list()
+one_theta_all.ep.density <- one_theta1.ep.density <- one_theta2.ep.density <- one_theta3.ep.density <- one_theta4.ep.density <- one_theta5.ep.density <- one_theta6.ep.density <- list()
+one_theta_all.em.CI <- one_theta1.em.CI <- one_theta2.em.CI <- one_theta3.em.CI <- one_theta4.em.CI <- one_theta5.em.CI <- one_theta6.em.CI <- list()
+one_theta_all.ep.CI <- one_theta1.ep.CI <- one_theta2.ep.CI <- one_theta3.ep.CI <- one_theta4.ep.CI <- one_theta5.ep.CI <- one_theta6.ep.CI <- list()
+one_theta_all.b01 <- one_theta1.b01 <- one_theta2.b01 <- one_theta3.b01 <- one_theta4.b01 <- one_theta5.b01 <- one_theta6.b01 <- list()
+one_theta_all.pred.y <- one_theta1.pred.y <- one_theta2.pred.y <- one_theta3.pred.y <- one_theta4.pred.y <- one_theta5.pred.y <- one_theta6.pred.y <- list()
+one_theta_all.np <- one_theta1.np <- one_theta2.np <- one_theta3.np <- one_theta4.np <- one_theta5.np <- one_theta6.np <- list()
 
 
-assign("one_theta", bnsm.one.theta(dat = obs.g10
+one_theta <- bnsm.one.theta(dat = obs.g10
                                    , emp = c(1,11), epp = c(1,11)
                                    , thetaalpha = 0.5, thetabeta = 0.5
                                    , diag = FALSE, mode = "graph", model.checking = TRUE
-                                   , reps = 3, draws = n_draws, tinning = n_draws, burntime = n_burntime
-                                   , quiet = TRUE, anames = NULL, onames = NULL, compute.sqrtrhat = TRUE))
+                                   , reps = 3, draws = n_draws, tinning = n_tinning, burntime = n_burntime
+                                   , quiet = TRUE, anames = NULL, onames = NULL, compute.sqrtrhat = TRUE)
 
-one_theta.em.density <- density(one_theta$em)
-one_theta.ep.density <- density(one_theta$ep)
-one_theta.em.CI <- apply(one_theta$em, 2, quantile, prob = c(0.025,0.975, 0.5))
-one_theta.ep.CI <- apply(one_theta$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
-one_theta.b01 <- apply(one_theta$net, c(3,4,5), mean)
-one_theta.pred.y <- pred.y.mean(one_theta$pred.y, iter = n_draws, reps = 3, m = 6)
-one_theta.np <- one_theta$np
+print("done one_theta")
+one_theta_all.em.density <- density(one_theta$em)
+one_theta_all.ep.density <- density(one_theta$ep)
+one_theta_all.em.CI <- apply(one_theta$em, 2, quantile, prob = c(0.025,0.975, 0.5))
+one_theta_all.ep.CI <- apply(one_theta$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
+one_theta_all.b01 <- apply(one_theta$net, c(3,4,5), mean)
+one_theta_all.pred.y <- pred.y.mean(one_theta$pred.y, iter = n_draws, reps = 3, m = m)
+one_theta_all.np <- one_theta$np
 rm(one_theta)
 
+for(i in 1:6){
+  print(i)
+  assign(paste("one_theta",i,sep=""), bnsm.one.theta(dat = obs.g10[i,,]
+                                   , emp = c(1,11), epp = c(1,11)
+                                   , thetaalpha = 0.5, thetabeta = 0.5
+                                   , diag = FALSE, mode = "graph", model.checking = TRUE
+                                   , reps = 3, draws = n_draws, tinning = n_tinning, burntime = n_burntime
+                                   , quiet = TRUE, anames = NULL, onames = NULL, compute.sqrtrhat = TRUE))
+
+  if(i==1){
+    one_theta1.em.density <- density(one_theta1$em)
+    one_theta1.ep.density <- density(one_theta1$ep)
+    one_theta1.em.CI <- apply(one_theta1$em, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta1.ep.CI <- apply(one_theta1$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta1.b01 <- apply(one_theta1$net, c(3,4,5), mean)
+    one_theta1.pred.y <- pred.y.mean(one_theta1$pred.y, iter = n_draws, reps = 3, m = 1)
+    one_theta1.np <- one_theta1$np
+    rm(one_theta1)
+  }else if(i==2){
+    one_theta2.em.density <- density(one_theta2$em)
+    one_theta2.ep.density <- density(one_theta2$ep)
+    one_theta2.em.CI <- apply(one_theta2$em, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta2.ep.CI <- apply(one_theta2$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta2.b01 <- apply(one_theta2$net, c(3,4,5), mean)
+    one_theta2.pred.y <- pred.y.mean(one_theta2$pred.y, iter = n_draws, reps = 3, m = 1)
+    one_theta2.np <- one_theta2$np
+    rm(one_theta2)
+  }else if(i==3){
+    one_theta3.em.density <- density(one_theta3$em)
+    one_theta3.ep.density <- density(one_theta3$ep)
+    one_theta3.em.CI <- apply(one_theta3$em, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta3.ep.CI <- apply(one_theta3$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta3.b01 <- apply(one_theta3$net, c(3,4,5), mean)
+    one_theta3.pred.y <- pred.y.mean(one_theta3$pred.y, iter = n_draws, reps = 3, m = 1)
+    one_theta3.np <- one_theta3$np
+    rm(one_theta3)
+  }else if(i==4){
+    one_theta4.em.density <- density(one_theta4$em)
+    one_theta4.ep.density <- density(one_theta4$ep)
+    one_theta4.em.CI <- apply(one_theta4$em, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta4.ep.CI <- apply(one_theta4$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta4.b01 <- apply(one_theta4$net, c(3,4,5), mean)
+    one_theta4.pred.y <- pred.y.mean(one_theta4$pred.y, iter = n_draws, reps = 3, m = 1)
+    one_theta4.np <- one_theta4$np
+    rm(one_theta4)
+  }else if(i==5){
+    one_theta5.em.density <- density(one_theta5$em)
+    one_theta5.ep.density <- density(one_theta5$ep)
+    one_theta5.em.CI <- apply(one_theta5$em, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta5.ep.CI <- apply(one_theta5$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta5.b01 <- apply(one_theta5$net, c(3,4,5), mean)
+    one_theta5.pred.y <- pred.y.mean(one_theta5$pred.y, iter = n_draws, reps = 3, m = 1)
+    one_theta5.np <- one_theta5$np
+    rm(one_theta5)
+  }else if(i==6){
+    one_theta6.em.density <- density(one_theta6$em)
+    one_theta6.ep.density <- density(one_theta6$ep)
+    one_theta6.em.CI <- apply(one_theta6$em, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta6.ep.CI <- apply(one_theta6$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
+    one_theta6.b01 <- apply(one_theta6$net, c(3,4,5), mean)
+    one_theta6.pred.y <- pred.y.mean(one_theta6$pred.y, iter = n_draws, reps = 3, m = 1)
+    one_theta6.np <- one_theta6$np
+    rm(one_theta6)
+  }
+}
+save.image(file = paste("data_matched_sim/BNSM_fit/BNSM_data_matched_simulation_", school,"_", k, ".RData", sep=""))
+
+  
+#save.image(file = paste("data_matched_sim/BNSM_fit/BNSM_data_matched_simulation_", school,"_", k, ".RData", sep=""))
+
+
+
 for(i in 1:length(b1.em.list)){
+  print(i)
   a1.em = a1.em.list[i]; b1.em = b1.em.list[i]; a2.em = 1; b2.em = b2.em.list[i]
   a1.ep = 1; b1.ep = 1; a2.ep = 1; b2.ep = 30 ### uniform prior
   a1.theta = a1.theta.list[i]; b1.theta = b1.theta.list[i]; a2.theta = 1; b2.theta = b2.theta.list[i] 
@@ -142,25 +224,8 @@ for(i in 1:length(b1.em.list)){
     theta3.pred.y <- pred.y.mean(theta3$pred.y, iter = n_draws, reps = 3, m = 6)
     theta3.np <- theta3$np
     rm(theta3)
-  }else if(i==4){
-    theta4.em.density <- density(theta4$em)
-    theta4.ep.density <- density(theta4$ep)
-    theta4.em.CI <- apply(theta4$em, 2, quantile, prob = c(0.025,0.975, 0.5))
-    theta4.ep.CI <- apply(theta4$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
-    theta4.b01 <- apply(theta4$net, c(3,4,5), mean)
-    theta4.pred.y <- pred.y.mean(theta4$pred.y, iter = n_draws, reps = 3, m = 6)
-    theta4.np <- theta4$np
-    rm(theta4)
-  }else if(i==5){
-    theta5.em.density <- density(theta5$em)
-    theta5.ep.density <- density(theta5$ep)
-    theta5.em.CI <- apply(theta5$em, 2, quantile, prob = c(0.025,0.975, 0.5))
-    theta5.ep.CI <- apply(theta5$ep, 2, quantile, prob = c(0.025,0.975, 0.5))
-    theta5.b01 <- apply(theta5$net, c(3,4,5), mean)
-    theta5.pred.y <- pred.y.mean(theta5$pred.y, iter = n_draws, reps = 3, m = 6)
-    theta5.np <- theta5$np
-    rm(theta5)
   }
-  save.image(file = paste("data_matched_sim/BNSM_fit/BNSM_data_matched_simulation_", school,"_", k, ".RData", sep=""))
 }
- 
+save.image(file = paste("data_matched_sim/BNSM_fit/BNSM_data_matched_simulation_", school,"_", k, ".RData", sep=""))
+
+
